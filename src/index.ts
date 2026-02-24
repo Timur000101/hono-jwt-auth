@@ -1,37 +1,23 @@
 import { Hono } from "hono";
-import { signupValidator } from "./schemas/signup.schema";
-import { initDb } from "./db/db";
-import { insertUser } from "./db/queries";
-import { cookieOpts, generateToken } from "./helpers";
-import { setCookie } from "hono/cookie";
+import { csrf } from "hono/csrf";
+import authRoutes from "./routes/auth.routes";
 
+// Initialize the main Hono application instance
 const app = new Hono();
 
-app.post("/api/signup", signupValidator, async (c) => {
-  const db = initDb();
+app.basePath('/api')
+// Global Middlewares
 
-  try {
-    const { email, password } = await c.req.json();
-    const userId = await insertUser(db, email, password);
-    const token = await generateToken(userId);
-    setCookie(c, "authToken", token, cookieOpts);
+// Use CSRF (Cross-Site Request Forgery) protection on all /api/* routes
+// This helps prevent malicious sites from executing actions on behalf of the user
+.use("/*", csrf())
 
-    return c.json({
-      message: "User created successfully",
-      user: {
-        id: userId,
-        email,
-      },
-    });
-  } catch (error) {
-    if (
-      error instanceof Error &&
-      error.message.includes("UNIQUE constraint failed")
-    ) {
-      return c.json({ errors: ["Email already exists"] }, 409);
-    }
-    return c.json({ errors: ["Internal server error"] }, 500);
-  }
-});
+// Routes
 
+// Mount the authentication routes under the /api prefix
+// This allows authRoutes definitions to be relative (e.g., /signup becomes /api/signup)
+.route("/auth", authRoutes);
+
+// Export the app instance so it can be served by the runtime (e.g., Bun)
+// Bun looks for a default export that has a fetch handler (which Hono provides)
 export default app;

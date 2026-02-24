@@ -17,6 +17,7 @@ describe("insertUser", () => {
   it("should insert a user into the database", async () => {
     const email = "test@test.com";
     const password = "password123";
+    
     const userId = await insertUser(db, email, password);
     expect(userId).toBeDefined();
   });
@@ -24,6 +25,7 @@ describe("insertUser", () => {
   it("should throw an error if the email is already in the db", async () => {
     const email = "test@test.com";
     const password = "password123";
+    
     await insertUser(db, email, password);
 
     try {
